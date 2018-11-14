@@ -1,0 +1,58 @@
+\newpage
+\appendix %添加附录编号
+
+%%附录第一个章节
+\section{附录一：factorial.cpp}
+\begin{lstlisting}[language={[x86masm]Assembler}]
+#include<iostream>
+using namespace std;
+int main()
+{
+	//test
+	int i,n,f;
+
+	cin>>n;
+	i=2;
+	f=1;
+	while(i<=n)
+	{
+		f=f*i;
+		i=i+1;
+	}
+	cout<<n<<endl;
+	return 0;
+}
+\end{lstlisting}
+\section{附录二：fibonacci.cpp}
+
+
+%%斐波那契
+
+\begin{lstlisting}[language={c++}]
+#include<iostream>
+using namespace std;
+int main()
+{
+	int i,n,f;
+
+	cin>>n;
+	i=2;
+	f=1;
+	while(i<=n)
+	{
+		f=f*i;
+		i=i+1;
+	}
+	cout<<n<<endl;
+	return 0;
+}
+
+\end{lstlisting}
+\clearpage
+
+
+
+
+%\addcontentsline{toc}{section}{附录二：阶乘}
+
+
