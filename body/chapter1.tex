@@ -402,8 +402,8 @@ Collect the contents of the header file and the stab table, and analyze the mean
 \end{figure}
 
 The function for finding symbol information is debuginfo\_eip(uintptr\_t addr, struct Eipdebuginfo *info)
-Analysis of kdbug.h, found that the function of this function is to fill the corresponding fields of the Eipdebuginfo structure.
-Analyze the debuginfo\_eip function and find that its execution logic is roughly: the structure of the eip value to be searched and the information to save the result. In the stab table, a binary search is performed on the item whose n\_type is file, and it is found that the value of the eip is in the middle of the label of the two source files (the first item in the figure). Then, the labels of the two source files are used as the left and right intervals, and the items in which the type is fun are binary searched, and the value is found between the two function labels. Finally, the eip value is subtracted from the left interval function value, and a binary search is performed to find the corresponding eip line number.
+Analyze kdbug.h, we found that the function of this function is to fill the corresponding fields of the Eipdebuginfo structure.
+Analyze the debuginfo\_eip function,we find that its execution logic is roughly: the structure of the eip value to be searched and the information to save the result. In the stab table, a binary search is performed on the item whose n\_type is file, and it is found that the value of the eip is in the middle of the label of the two source files (the first item in the figure). Then, the labels of the two source files are used as the left and right intervals, and the items in which the type is fun are binary searched, and the value is found between the two function labels. Finally, the eip value is subtracted from the left interval function value, and a binary search is performed to find the corresponding eip line number.
 The added code is as follows:
 \begin{figure}[H]
   \centering
@@ -422,6 +422,25 @@ Modify the mon\_backtrace code to output the search result
 Eip\_fn\_namelen is used to exclude colon information after the function name
 
 Tmp\_ebp[1](eip)-info->eip\_fn\_addr outputs the byte difference between the current instruction and the first instruction address of the function.
+
+Source of \_\_STAB\_ * in debuginfo\_eip:
+
+\begin{figure}[H]
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=0.8\linewidth]{figure/challenge_4}
+\end{figure}
+
+
+In kdebug.c, these variables are declared as extern, and their definitions are in kernel.ld as follows:
+
+\begin{figure}[H]
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=0.8\linewidth]{figure/challenge_5}
+\end{figure}
+
+Taking the .stab section as an example, first define the \_\_STAB\_BEGIN\_\_ variable through PROVIDE, its address points to the beginning of the stab section, and then merge the stab sections of each file by the *(.stab) command (the section is compiled by the compiler when compiling each file). Generate, there are debugging information related to each file), and finally define the \_\_STAB\_END\_\_ variable, its position points to the end. The .stabstr section has the same definition as .stab.
 \clearpage
 
 
