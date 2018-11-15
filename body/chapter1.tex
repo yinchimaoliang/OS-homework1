@@ -327,7 +327,7 @@ We first call the read\_ebp function to get the value of the current EBP registe
 
 \begin{table}[H]
 \centering
-\begin{tabular}{ |p{150pt}| }\toprule
+\begin{tabular}{ |p{150pt}| }
 \hline			
 Ebp of the previous function  \\ \hline		
 ebx \\ \hline 		
@@ -356,6 +356,7 @@ The result of the operation is as follows
   \includegraphics[width=0.8\linewidth]{figure/mon_backtrace_qemu}
 \end{figure}
 
+
 Add backtrace to the command list
 \begin{figure}[H]
   \centering
@@ -364,11 +365,6 @@ Add backtrace to the command list
 \end{figure}
 
 The results are as follows:
-\begin{figure}[H]
-  \centering
-  % Requires \usepackage{graphicx}
-  \includegraphics[width=0.8\linewidth]{figure/backtrace_result}
-\end{figure}
 \subsubsection{Challenge homework}
 \begin{flushleft}
 {\Large Question}
@@ -441,6 +437,14 @@ In kdebug.c, these variables are declared as extern, and their definitions are i
 \end{figure}
 
 Taking the .stab section as an example, first define the \_\_STAB\_BEGIN\_\_ variable through PROVIDE, its address points to the beginning of the stab section, and then merge the stab sections of each file by the *(.stab) command (the section is compiled by the compiler when compiling each file). Generate, there are debugging information related to each file), and finally define the \_\_STAB\_END\_\_ variable, its position points to the end. The .stabstr section has the same definition as .stab.
+
+
+The result is as follows:
+\begin{figure}[H]
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=0.8\linewidth]{figure/backtrace_result}
+\end{figure}
 \clearpage
 
 
