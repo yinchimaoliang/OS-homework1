@@ -35,101 +35,118 @@ Here we have to write the allocation subfunction of the physical memory page. It
 {\Large Analysis \& Answer}
 \end{flushleft}
 
-First, let's look at the structure of PageInfo. From the comments we can see that pp\_link points to Next page on the free list.pp\_ref is the count of pointers (usually in page table entries) to this page, for pages allocated using page\_alloc. Pages allocated at boot time using pmap.c's
-Boot\_alloc do not have valid reference count fields.
+The operating system must keep track of which physical RAM is free and which is in use. This exercise mainly writes a physical page allocator. It uses a linked list of PageInfo structures to record which pages are free, and each structure corresponds to a physical page.
+
+Because the implementation of the page table requires the allocation of physical memory to store the page table, we need to write the physical page allocator before the implementation of the virtual memory.
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\linewidth]{figure/PageInfo}
-\caption{PageInfo}
+\caption{Definition of PageInfo in memlayout.h}
 \end{figure}
 
-We enter the pmap.c file, we can find the mem\_init function, this sub-function will be called when the kernel starts running, and some initialization settings are set for the memory management system of the whole operating system, such as setting the page table and so on. In this function, we can see that the first step is to execute the i386\_detect\_memory function. According to the comment, we can know that it is used to detect how much memory space is available in the system.
+
+In the file kern/pmap.c, the function mem\_init() is called when the kernel first starts running, and some initialization settings are made for the memory management system of the entire operating system.
+
+[Step 1] Enter mem\_init(). The first step is to call the sub-function i386\_detect\_memory() to check how much total memory space is available in the system and how much the three parts of the memory space are, and divide the page according to the set PGSIZE. The total number of pages and the number of pages in each of the three parts are calculated in the function.
+
+JOS divides the entire physical memory space into three parts:
+
+1 Basemen: Available from 0x00000 to 0xA0000
+
+2 IO hole: From 0xA0000 to 0x100000, not available, mainly used to allocate to external devices.
+
+3 Extmen: From 0x100000 to 0x, available, the most important memory area.
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\linewidth]{figure/i386_detect_memory}
-\caption{i386\_detect\_memory}
+\caption{i386\_detect\_memory() run result}
 \end{figure}
 
-Jos divides the entire physical memory space into three parts:
-
-One is from 0x00000~0xA0000, this part is also called basemem, which is available.
-
-This is followed by 0xA0000~0x100000. This part is called IO hole and is not available. It is mainly used to allocate to external devices.
-
-This is followed by 0x100000~0x. This part is called extmem and is available. This is the most important memory area.
-
-This sub-function includes three variables, where npages records the total number of pages in memory, npages\_basemem records the number of pages in basemem, and npages\_extmem records the number of pages in extmem.
-
-After executing this function, the next instruction is:
-
-Kern\_pgdir = (pde\_t *) boot\_alloc(PGSIZE);
-
-Memset(kern\_pgdir, 0, PGSIZE);
-
-Where kern\_pgdir is a pointer, pde\_t *kern\_pgdir, which is a pointer to the operating system's page directory table. When the operating system is working in virtual memory mode, the page directory table is required for address translation. The memory size space we allocate for this page directory table is PGSIZE, which is the size of one page. And first clear this part of the memory.
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.8\linewidth]{figure/kern_pgdir}
-\caption{kern\_pgdir\&memset}
-\end{figure}
-
-
-As the comment says, this function works as Allocate a chunk large enough to hold 'n' bytes, then update nextfree. Make sure nextfree is kept aligned to a multiple of PGSIZE. it is only used temporarily as a page allocator, then the real page allocator we use is the page\_alloc() function. The core idea of ​​this function is to maintain a static variable nextfree, which stores the virtual address of the next free memory space that can be used, so every time we want to allocate n bytes of memory, we need to modify this variable. Value.
-
-
-In boot\_alloc, nextfree is the virtual memory address of the next free memory, which is initialized when nextfree is empty.npages is the number of pages. The available memory size is npages × PGSIZE. According to lab1, KERNBASE is the starting address for allocating memory. If nextfree is greater than the value of KERNBASE + npages × PGSIZE, the pointer address overflows.The modified code is as follows
+[Step 2] (1) Call the function boot\_alloc function to allocate a virtual memory of size PGSIZE followed by the operating system kernel bss for storing the operating system page table. When the operating system is working in virtual memory mode, this page directory table is required for address translation (virtual address→physical address).
+The boot\_alloc function can be used to allocate virtual memory, and its parameter is the virtual memory byte size to be allocated. When 0 is input, the currently used virtual memory tail can be queried. The core idea of ​​this function is to maintain a static variable nextfree, which stores the virtual address corresponding to the next free memory space that can be used. The first time you enter the function you need to initialize nextfree. Note: The allocated memory size needs to be aligned with PGSIZE by the ROUNDUP function.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\linewidth]{figure/changed_boot_alloc}
-\caption{boot\_alloc}
+\includegraphics[width=0.8\linewidth]{figure/boot_alloc_changed}
+\caption{The code supplemented by the boot\_alloc() function}
 \end{figure}
 
-Then back to the mem\_init function, we need to add an instruction that asks us to allocate an array of npages 'struct PageInfo's and store it in 'pages'.The kernel uses this array to keep track of physical pages: for each physical page, there is a corresponding struct PageInfo in this array.  'npages' is the number of physical pages in memory.  Use memset to initialize all fields of each struct PageInfo to 0.
+(2) Initialize a pointer in physical memory kern\_pgdir points to the above operating system page table.
 
-We naturally think of the boot\_alloc function that was just completed. By calling it and the memset function, we can complete the required functions. The modified code is as follows:
+(3) Call the memset function to clear the virtual memory of the operating system page table area.
+
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\linewidth]{figure/changed_mem_init}
-\caption{mem\_init}
+\includegraphics[width=0.8\linewidth]{figure/PGSIZE}
+\caption{By information printing, the OS page table end address - OS page table start address = PGSIZE}
 \end{figure}
 
-Referring to the figure below, we can know that the various blocks of memory are as follows:
-\begin{flushleft}
-I. Physical page 0 is in use for the sake of the fact that we store IDT and
-some BIOS structure in it.\\
-II. The IO hole (IOPHYSMEM, EXTPHYSMEM) should never be allocated.\\
-III. The extended memory, which mainly refer to the memory we allocate to
-'pages' and 'kern pgdir' are in use.\\
-IV. Then base physical memory are free.\\
-\end{flushleft}
+
+[Step 3] Add the first page directory entry for the page directory table just created, occupying the 0th position of the page table. The content of the entry is the real address of the pointer kern\_pgdir. UVPT is defined as the starting address of a virtual address, 0xef400000. Starting from this virtual address, the page table kern\_pgdir of this operating system is stored, so we must map it to the physical address of the page table kern\_pgdir, PADDR(kern\_pgdir) It is calculating the real physical address corresponding to kern\_pgdir.
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\linewidth]{figure/page_init_pic}
+\includegraphics[width=0.8\linewidth]{figure/real_physical_address}
+\caption{The actual physical address of the pointer is known by information printing.}
 \end{figure}
 
-In the for loop, we determine the state of the current page. If the page is already occupied, set the pp\_ref attribute in the PageInfo structure to one; if it is a free page, then send the page to the pages\_free\_list list, the modified code show as below
+[Step 4] Use the boot\_alloc function to allocate a virtual memory of size npages * sizeof(struct PageInfo), which is used to store an array of struct PageInfo. The pointers in memory point to the virtual memory. The OS uses this array to track the usage of all memory pages. Each PageInfo represents a page in memory. PageInfo has two attributes: 1. Whether the current page is occupied. 2. Pointer to the next page. Then call the memset function to clear the corresponding area memory.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{figure/pages_alloc_virtualmem}
+\caption{Allocate virtual memory for pages}
+\end{figure}
+
+Note: It is found through information printing that the memory address at the end of the pages page table minus the memory address at the beginning of the pages is not exactly equal to npages * sizeof(struct PageInfo), but slightly larger than when the virtual memory is allocated in the boot\_alloc function. It needs to be noted that it is aligned with the PGSIZE multiple, so the allocated virtual memory size is appropriately allocated upwards.
+
+[Step 5] Call the function page\_init() to initialize the linked list of two struct pageinfo pages and page\_free\_list. The pages\_free\_list linked list stores all the free page information, and the pages store the information of the free\\non-free pages.
+
+Jos divides the entire physical memory space into three parts, namely BASEMEM, IO HOLE, and EXTMEM.
+
+According to the first item of the known basemem is already occupied, and other pages of basemem are not occupied. Since IO HOLE is mainly used to be allocated to external devices and is not available, it is equivalent to occupying all pages. EXTMEM is occupied in the first part of the page in step four, and part of it is idle.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{figure/pages_init}
+\caption{Pages initialization result}
+\end{figure}
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\linewidth]{figure/page_init_changed}
-\caption{page\_init}
+\caption{page\_init() supplemental code screenshot}
 \end{figure}
 
+[Step 6] Call check\_page\_free\_list() and check\_page\_alloc() to test the above physical page allocator.
 
-Then, we go to implement the page\_alloc function, through the annotation, we know that the function of the function is to allocate a physical page. We can refer to the instructions in the comments to implement it, the implementation code is as follows
+Check\_page\_free\_list() checks whether the so-called free pages of the page\_free\_list linked list are really legal and free. When the input parameter is 1, this function needs to perform one additional operation before checking, and modify the free page list free\_page\_list. After page\_init, free\_page\_list has stored all the free page tables, but their order is according to the page table. The numbers are arranged from large to small. In the page directory table entry\_pgdir (not kern\_pgdir) used by the current operating system, the page table of the large number is not mapped, so we cannot operate this part of the page table. However, the small numbered page table, that is, from the page table 0 to the page table 1023, has been mapped, so this page table can be operated. Then check\_page\_free\_list(1) is to complete the PageInfo structure corresponding to this part of the page table to the front end of the free\_page\_list for the operating system to use now. The rest of the operation is to check the free\_page\_list.
+
+The function of the check\_page\_alloc() function is to check if page\_alloc() and page\_free() functions correctly.
+
+One of the job requirements is to implement the page\_alloc() function. By commenting we can know that the function of this function is to allocate a physical page. The return value of the function is the PageInfo structure corresponding to this physical page. So the general steps of this function should be:
+
+1. Take a PageInfo structure of a free page from free\_page\_list
+
+2. Modify the free\_page\_list related information, such as modifying the linked list header
+
+3. Modify the PageInfo structure information of the taken free page to initialize the memory of the page.
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\linewidth]{figure/page_alloc_changed}
-\caption{page\_alloc}
+\caption{Page\_alloc() function complement code}
 \end{figure}
 
-Then, we will complete the page\_free function, we should note that this function should only be called when pp->pp\_ref reach 0. Then, the way we implement it is to add it to the page\_free\_list, the implementation code is as follows
+Similarly, the job requires page\_free(). According to the comment, the function of this method is to return the PageInfo structure of a page to the page\_free\_list free page list, which means that the page is recycled. Mainly complete the following operations:
+
+1. Modify the corresponding information of the PageInfo structure of the page being recycled.
+
+2. Insert the structure back into the page\_free\_list free page list
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\linewidth]{figure/page_free_changed}
-\caption{page\_free}
+\caption{Page\_free function supplement code}
 \end{figure}
-
 \subsection{Virtual Memory}
 \subsubsection{Virtual address, linear address and physical address}
 
@@ -197,11 +214,33 @@ check\_page(), called from mem\_init(), tests your page table management routine
 
 In the previous description, we have a basic understanding of the concept of virtual address, linear address, and physical address.
 
-Physical address: A unit address for memory chip level that corresponds to the address bus to which the processor and CPU are connected.
+{\large Physical address}
 
-Logical address: refers to the portion of the offset address associated with the segment generated by the program. For example, in C language pointer programming, you can read the value of the pointer variable itself (\& operation). In fact, this value is the logical address. It is relative to the address of your current process data segment and is not related to the absolute physical address.
+The unit addressing for the memory chip level corresponds to the address bus to which the processor and the CPU are connected.
+- This concept should be the best understood of these concepts. However, it is worth mentioning that although the physical address can be directly understood as the memory itself inserted in the machine, the memory is treated as a large array of numbers from 0 bytes up to the maximum amount of bytes, and then this is An array is called a physical address. However, in fact, this is just an abstraction provided by the hardware to the software. The way memory is addressed is not the case. So, to say that it is "corresponding to the address bus" is more appropriate. Just aside from the consideration of the physical memory addressing mode, it is acceptable to directly compare the physical address with the physical memory. Perhaps the wrong understanding is more conducive to metaphysical abstraction.
 
-Linear address or virtual address:
+{\large Virtual memory}
+
+This is a description of the abstraction of the entire memory (not to the top of the machine).
+
+It is relative to physical memory and can be directly understood as "not straight" and "fake" memory. For example, a 0x08000000 memory address. It is not correct for the address element of 0x08000000 -1 in the large array on the physical address.
+
+The reason is this. Because modern operating systems provide a kind of memory management, that is, virtual memory. The process uses the address in virtual memory, which is assisted by the operating system to "convert" it into a real physical address.
+
+This "conversion". It is the key to all issues discussed.
+With this kind of abstraction. A program can use a much larger address space than the real physical address.
+
+Even multiple processes can use the same address. Not surprisingly. Since the converted physical address is not the same.
+—— Can decompile the connected program and find that the connector has assigned an address to the program. For example, to call a function A, the code is not call A, but call 0x0811111111, that is, function A The address has been fixed. Without such a "conversion", there is no concept of a virtual address, and doing so is simply not feasible.
+
+{\large Logical address}
+
+In order to be compatible, Intel has retained the segmental memory management method of ancient times.
+
+A logical address is an address used in a machine language instruction to specify an operand or an instruction. In the above example, we say that the address assigned to A by the connector 0x08111111 is the logical address. . "A logical address is an offset of a segment identifier plus a relative address within a specified segment. It is expressed as [segment identifier: offset within segment], that is, the 0x08111111 in the above example should indicate For [A's code segment identifier: 0x08111111], this is complete."
+
+{\large Linear address or virtual address (virtual address)}
+
 Similar to the logical address, it is also an unreal address. If the logical address is the corresponding hardware platform segment management pre-conversion address, then the linear address corresponds to the pre-conversion address of the hardware page memory.
 
 We also need to know the knowledge about the page table.
@@ -215,9 +254,18 @@ Because it has been divided into 1024 groups, each group has a page table (size 
 The conversion of three addresses and the page table mechanism are shown in the figure below.
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.8\linewidth]{figure/address_transform}
+\includegraphics[width=0.8\linewidth]{figure/address_transform_1}
 \end{figure}
 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{figure/address_transform_2}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{figure/address_transform}
+\end{figure}
 
 \begin{flushleft}
 {\Large Analysis \& Answer}
@@ -264,6 +312,24 @@ Need to complete a loop, using the pgdir\_walk function we just completed, we ca
 \caption{boot\_map\_region}
 \end{figure}
 
+Next, continue to view page\_insert(). The function prototype is as follows: page\_insert(pde\_t *pgdir, struct PageInfo *pp, void *va, int perm), which is functionally completed: mapping a page pp in a physical memory to a virtual address va .
+
+The main steps of this function are as follows:
+
+1. First, find the page table entry corresponding to the virtual address va by using the pgdir\_walk function. (4)
+
+2. Modify the value of pp\_ref. (8)
+
+3. Check the page table entry to determine if va has been mapped. If it is mapped, delete the mapping. (9-13)
+
+4. Add the mapping between va and pp to the page table entry. (14-15)
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\linewidth]{figure/page_insert_changed}
+\caption{page\_insert}
+\end{figure}
+
 Next, we complete the page\_lookup function, which functions as return the page mapped at virtual address 'va'.If the pte\_store parameter is not 0, the page table entry address of this physical page is stored in pte\_store.
 
 We only need to call the pgdir\_walk function to get the page table entry corresponding to this va, and then determine whether the page is already in memory, and if so, return the PageInfo structure pointer of this page. And store the contents of this page table entry in pte\_store.The modified code is shown in the figure:
@@ -273,18 +339,20 @@ We only need to call the pgdir\_walk function to get the page table entry corres
 \caption{page\_lookup}
 \end{figure}
 
-Go ahead and we'll complete the page\_remove function. By commenting, we can know that the function of this function is unmaps the physical page at virtual address 'va'.The modified code is shown in the figure:
+The last one is the page\_remove function. Its prototype is: void page\_remove(pde\_t *pgdir, void *va). The function is to delete the mapping between the virtual address va and the physical page.
+
+The note also hints at a few details to be aware of:
+
+1. The pp\_ref value should be reduced by one.
+
+2. If pp\_ref is reduced to 0, this page should be recycled
+
+3. The page table entry corresponding to this page should be set to 0.
+
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\linewidth]{figure/page_remove_changed}
 \caption{page\_remove}
-\end{figure}
-
-Go ahead and we'll complete the page\_insert function. By commenting, we can know that the function of the function is map the physical page 'pp' at virtual address 'va'. Combining the previously completed pgdir\_walk function and the page\_remove function, we first find the page table corresponding to the virtual address va through the pgdir\_walk function. Item, modify the value of pp\_ref, check the page table entry, determine whether va has been mapped, if it is mapped, delete the mapping, and add the mapping relationship between va and pp to the page table entry.The modified code is shown in the figure:
-\begin{figure}[H]
-\centering
-\includegraphics[width=0.8\linewidth]{figure/page_insert_changed}
-\caption{page\_insert}
 \end{figure}
 
 \subsection{Kernel address space}
@@ -315,7 +383,7 @@ The address space is used by the user environment, and the user environment will
 
 In this exercise, three virtual addresses are mapped to the physical page.
 
-First, we will complete the UPAGES mapping UPAGES (0xef000000 ~ 0xef400000) up to 4MB, which is the data structure of JOS recording physical page usage.
+First, we will complete the UPAGES mapping UPAGES (0xef000000 \~ 0xef400000) up to 4MB, which is the data structure of JOS recording physical page usage.
 
 Currently only one page directory is created, kernel\_pgdir, so the first parameter is obviously kernel\_pgdir. The second parameter is the virtual address, and UPAGES is originally given as a virtual address. The third parameter is the mapped memory block size. The fourth parameter is the physical address mapped to, and the physical address of pages can be taken directly. Permissions PTE\_U indicates that the user has permission to read.Currently only one page directory is created, kernel\_pgdir, so the first parameter is obviously kernel\_pgdir. The second parameter is the virtual address, and UPAGES is originally given as a virtual address. The third parameter is the mapped memory block size. The fourth parameter is the physical address mapped to, and the physical address of pages can be taken directly. Permissions PTE\_U indicates that the user has permission to read.
 The modified code is shown in the figure
@@ -325,7 +393,7 @@ The modified code is shown in the figure
 \end{figure}
 
 
-Then there is the memory stack, the kernel stack ( 0xefff8000 ~ 0xf0000000) 32kB
+Then there is the memory stack, the kernel stack ( 0xefff8000 \~ 0xf0000000) 32kB
 Bootstrap represents the lowest address of the stack. Since the stack grows to the lower address, it is actually the top of the stack. We will map the address space in [KSTACKTOP-KSTKSIZE, KSTACKTOP)
 The modified code is shown in the figure
 \begin{figure}[H]
@@ -334,7 +402,7 @@ The modified code is shown in the figure
 \end{figure}
 
 
-Finally, the kernel part, we will map the kernel ( 0xf0000000 ~ 0xffffffff ) 256MB
+Finally, the kernel part, we will map the kernel ( 0xf0000000 \~ 0xffffffff ) 256MB
 The modified code is shown in the figure
 \begin{figure}[H]
 \centering
