@@ -148,6 +148,29 @@ Similarly, the job requires page\_free(). According to the comment, the function
 \caption{Page\_free function supplement code}
 \end{figure}
 \subsection{Virtual Memory}
+\subsubsection{Exercise \Rmnum{4}}
+\begin{flushleft}
+{\Large Question}
+\end{flushleft}
+
+Read Chapters 5 and 6 of the Intel 80386 Reference Manual for reading about page conversion and page-based protection(5.2 and 6.4). We recommend that you briefly understand the chapter on segmentation mode, because although the use of JOS is based on
+Page memory for virtual memory and protection, but segment conversion and segment-based protection cannot be disabled on x86, so you need
+Have a basic understanding..
+
+\begin{flushleft}
+{\Large Answer}
+\end{flushleft}
+
+The logical address of the page consists of the page number and the in-page address
+
+The physical address of the page is spliced ​​by the block number and the address within the page.
+
+The purpose of the page table is to implement address mapping from page number to physical block number. The page table is retrieved by the page number of the logical address to obtain the physical block number of the page; and the in-page address d is directly sent into the block address field of the physical address register. In this way, the physical block number and the intra-block address are spliced ​​into an address that actually accesses the memory, thereby completing the conversion from the logical address to the physical address.
+
+So the calculation formula for the physical address is:
+
+Physical address = block size (ie page size L) ́ block number f + page address d
+
 \subsubsection{Virtual address, linear address and physical address}
 
 In the x86 architecture, a virtual address is composed of two parts, one is a segment selector and the other is a segment offset. A Linear Address refers to an address obtained by converting a virtual address by a segment address translation mechanism. A physical address (Physical Addresses) is the real memory address obtained by the paging address translation mechanism after converting the linear address. This address will eventually be sent to the address bus of your memory chip. The specific relationship of the three addresses is as follows
@@ -156,8 +179,9 @@ In the x86 architecture, a virtual address is composed of two parts, one is a se
 \includegraphics[width=0.8\linewidth]{figure/virtual_linear_physical_address}
 \end{figure}
 
+\subsubsection{Exercise \Rmnum{5}}
 \begin{flushleft}
-{\Large Exercise}
+{\Large Question}
 \end{flushleft}
 
 GDB can only access QEMU's memory through virtual addresses, but when learning to create virtual addresses, we also need to check the physical address at the same time. Learn QEMU's monitor command, especially the xp command, which allows you to check physical memory.
@@ -173,8 +197,9 @@ Open Terminal, enter qemu-system-i386 -hda obj/kern/kernel.img -monitor stdio -g
 \caption{qemu command}
 \end{figure}
 
+\subsubsection{Question \Rmnum{3}}
 \begin{flushleft}
-{\Large Exercise}
+{\Large Question}
 \end{flushleft}
 
 Assuming the following kernel code is correct, then what type of variable x will be, uintptr\_t or

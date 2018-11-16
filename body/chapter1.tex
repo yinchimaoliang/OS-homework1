@@ -22,6 +22,96 @@ In this experiment, we chose QEMU to simulate a real computer. The use of QEMU i
 \end{figure}
 
 Through the above two instructions, we can see that the kernel information has been output in the console. It can be seen that QEMU can function as a simulation computer and the system can run normally.
+
+\subsubsection{Exercise \Rmnum{1}}
+\begin{flushleft}
+{\Large Question}
+\end{flushleft}
+
+Refer to the NASM assembler used in the book, and we are using the GNU assembler. The syntax is slightly different.
+Also, refer to Brennan's Guide to Inline Assembly for the differences.
+
+\begin{flushleft}
+{\Large Answer}
+\medskip
+{\large Basic structure}
+
+AT\&T and Intel syntax use the opposite order for source and destination operands. For example:
+
+\quad Intel: mov eax, 4
+
+\quad AT\&T: movl \$4, \%eax
+
+In AT\&T syntax, immediate operands are preceded by \$; in Intel syntax, immediate operands are not. For example:
+
+\quad Intel: push 4
+
+\quad AT\&T: pushl \$4
+
+In AT\&T syntax, register operands are preceded by \%; in Intel syntax, they are not.
+
+In AT\&T syntax, the size of memory operands is determined from the last character of the opcode name. Opcode suffixes of b, w, and l specify byte (8-bit), word (16-bit), and long (32-bit) memory references. Intel syntax accomplishes this by prefixing memory operands (not the opcodes themselves) with byte ptr, word ptr, and dword ptr. Thus:
+
+\quad Intel: mov al, byte ptr foo
+
+\quad AT\&T: movb foo, \%al
+
+Immediate form long jumps and calls are lcall/ljmp \$section, \$offset in AT\&T syntax; the Intel syntax is call/jmp far section:offset. The far return instruction is lret \$stack-adjust in AT\&T syntax, whereas Intel uses ret far stack-adjust.
+\medskip
+{\large Variables and accessing memory}
+
+We can find the difference between the two grammars by the following code.
+
+\begin{figure}[H]
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=0.8\linewidth]{figure/exercise_1}\\
+\end{figure}
+
+We can see several differences above in the declaration of memory variables. NASM uses the dd, dw, and db directives to declare 32-, 16-, and 8-bit numbers, respectively, whereas GAS uses the .long, .int, and .byte for the same purpose. GAS has other directives too, such as .ascii, .asciz, and .string. In GAS, you declare variables just like other labels (using a colon), but in NASM you simply type a variable name (without the colon) before the memory allocation directive (dd, dw, etc.), followed by the value of the variable.
+
+Line 18 illustrates the memory indirect addressing mode. NASM uses square brackets to dereference the value at the address pointed to by a memory location: [var1]. GAS uses a circular brace to dereference the same value: (var1). The use of other addressing modes is covered later in this article.
+
+\medskip
+
+{\large Using macros}
+
+NASM users might be familiar with declaring macros using the \%beginmacro directive and ending them with an \%endmacro directive. A \%beginmacro directive is followed by the macro name. After the macro name comes a count, the number of macro arguments the macro is supposed to have. In NASM, macro arguments are numbered sequentially starting with 1. That is, the first argument to a macro is \%1, the second is \%2, the third is \%3, and so on. For example:
+
+\quad \%beginmacro macroname 2
+   \quad mov eax, \%1
+   \quad mov ebx, \%2
+\quad \%endmacro
+
+This creates a macro with two arguments, the first being \%1 and the second being \%2. Thus, a call to the above macro would look something like this:
+
+\quad macroname 5, 6
+
+Macros can also be created without arguments, in which case they don't specify any number.
+
+Now let's take a look at how GAS uses macros. GAS provides the .macro and .endm directives to create macros. A .macro directive is followed by a macro name, which may or may not have arguments. In GAS, macro arguments are given by name. For example:
+
+\quad .macro macroname arg1, arg2
+
+   \quad movl $\arg1$, \%eax
+   
+   \quad movl $\arg2$, \%ebx
+   
+\quad .endm
+
+A backslash precedes the name of each argument of the macro when the name is actually used inside a macro. If this is not done, the linker would treat the names as labels rather then as arguments and will report an error.
+
+\medskip
+{\large Functions, external routines, and the stack}
+
+In NASM, any label that is not part of our program and needs to be resolved during link time must be predefined, which is the function of the extern keyword (line 24). GAS doesn't have such requirements. After this, the address of the string usort\_str is pushed onto the stack (line 30). In NASM, a memory variable such as usort\_str represents the address of the memory location itself, and thus a call such as push usort\_str actually pushes the address on top of the stack. In GAS, on the other hand, the variable usort\_str must be prefixed with \$, so that it is treated as an immediate address. If it's not prefixed with \$, the actual bytes represented by the memory variable are pushed onto the stack instead of the address.
+
+The addressing modes are represented in NASM and GAS as follows:
+
+\quad NASM：mov al, byte [ebx + esi]
+
+\quad GAS：movb (\%ebx, \%esi, 1), \%al
+\end{flushleft}
 \subsubsection{The PC's Physical Address Space}
 The approximate physical distribution of the physical memory of the pc is as follows
 \begin{figure}[H]
@@ -62,6 +152,23 @@ The boot loader must perform two main functions.
  2. The boot loader can then access the IDE disk device registers directly from the disk by using x86 specific IO instructions.
 
 For the boot loader, there is a file that is important, obj/boot/boot.asm. This file is a disassembled version of our real-run boot loader program. So we can compare it with its source code, boot.S and main.c.
+\subsubsection{Exercise \Rmnum{2}}
+\begin{flushleft}
+{\Large Question}
+\end{flushleft}
+
+Use the debug function of GDB to complete the boot loader tracking process. The b command sets a breakpoint, such as b *0x7c00 to set a breakpoint at 0x7c00; the c command to execute to the next breakpoint; the si command is single-step.
+
+\begin{flushleft}
+{\Large Answer}
+\end{flushleft}
+\begin{figure}[H]
+  \centering
+  % Requires \usepackage{graphicx}
+  \includegraphics[width=0.8\linewidth]{figure/exercise_2}\\
+\end{figure}
+
+According to the prompt, we use the b and c instructions to set the breakpoint and execute to the next breakpoint, and use si to step through the debug.
 
 \subsubsection{Question \Rmnum{1}}
 Set a breakpoint at address 0x7c00, which is where the boot sector will be loaded. Continue execution until that breakpoint. Trace through the code in boot/boot.S, using the source code and the disassembly file obj/boot/boot.asm to keep track of where you are. Also use the x/i command in GDB to disassemble sequences of instructions in the boot loader, and compare the original boot loader source code with both the disassembly in obj/boot/boot.asm and GDB.
@@ -270,9 +377,9 @@ After that we modify the monitor.c file and then run qemu on the terminal to tes
 
 As can be seen from the results, the 20 we defined is under \%d, and the \%o is correctly changed to octal 24
 
-\subsubsection{Stack}
+\subsubsection{Exercise \Rmnum{3}}
 \begin{flushleft}
-{\Large Exercise}
+{\Large Question}
 
 \qquad To become familiar with the C calling conventions on the x86,find the address of the test\_backtrace function in obj/kern/kernel.asm,set a breakpoint there,and examine what happens each time it gets called after the kernel starts.How many 32-bits words does each recursive nesting level of test\_backtrace push on the stack,and what are those words?\\
 
