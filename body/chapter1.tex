@@ -34,6 +34,7 @@ Also, refer to Brennan's Guide to Inline Assembly for the differences.
 \begin{flushleft}
 {\Large Answer}
 \medskip
+
 {\large Basic structure}
 
 AT\&T and Intel syntax use the opposite order for source and destination operands. For example:
@@ -50,13 +51,14 @@ In AT\&T syntax, immediate operands are preceded by \$; in Intel syntax, immedia
 
 In AT\&T syntax, register operands are preceded by \%; in Intel syntax, they are not.
 
-In AT\&T syntax, the size of memory operands is determined from the last character of the opcode name. Opcode suffixes of b, w, and l specify byte (8-bit), word (16-bit), and long (32-bit) memory references. Intel syntax accomplishes this by prefixing memory operands (not the opcodes themselves) with byte ptr, word ptr, and dword ptr. Thus:
+In AT\&T syntax, the size of memory operands is determined by the last character of the opcode name. Opcode suffixes of b, w, and l specify byte (8-bit), word (16-bit), and long (32-bit) memory references. Intel syntax accomplishes this by prefixing memory operands (not the opcodes themselves) with byte ptr, word ptr, and dword ptr. Thus:
 
 \quad Intel: mov al, byte ptr foo
 
 \quad AT\&T: movb foo, \%al
 
 Immediate form long jumps and calls are lcall/ljmp \$section, \$offset in AT\&T syntax; the Intel syntax is call/jmp far section:offset. The far return instruction is lret \$stack-adjust in AT\&T syntax, whereas Intel uses ret far stack-adjust.
+
 \medskip
 {\large Variables and accessing memory}
 
@@ -94,9 +96,9 @@ Now let's take a look at how GAS uses macros. GAS provides the .macro and .endm 
 \quad .macro macroname arg1, arg2
 
    \quad movl $\arg1$, \%eax
-   
+
    \quad movl $\arg2$, \%ebx
-   
+
 \quad .endm
 
 A backslash precedes the name of each argument of the macro when the name is actually used inside a macro. If this is not done, the linker would treat the names as labels rather then as arguments and will report an error.
@@ -104,7 +106,7 @@ A backslash precedes the name of each argument of the macro when the name is act
 \medskip
 {\large Functions, external routines, and the stack}
 
-In NASM, any label that is not part of our program and needs to be resolved during link time must be predefined, which is the function of the extern keyword (line 24). GAS doesn't have such requirements. After this, the address of the string usort\_str is pushed onto the stack (line 30). In NASM, a memory variable such as usort\_str represents the address of the memory location itself, and thus a call such as push usort\_str actually pushes the address on top of the stack. In GAS, on the other hand, the variable usort\_str must be prefixed with \$, so that it is treated as an immediate address. If it's not prefixed with \$, the actual bytes represented by the memory variable are pushed onto the stack instead of the address.
+In NASM, any label that is not part of our program that needs to be resolved during link time must be predefined, which is the function of the extern keyword (line 24). GAS doesn't have such requirements. After this, the address of the string usort\_str is pushed onto the stack (line 30). In NASM, a memory variable such as usort\_str represents the address of the memory location itself, and thus a call such as push usort\_str actually pushes the address on top of the stack. In GAS, on the other hand, the variable usort\_str must be prefixed with \$, so that it is treated as an immediate address. If it's not prefixed with \$, the actual bytes represented by the memory variable are pushed onto the stack instead of the address.
 
 The addressing modes are represented in NASM and GAS as follows:
 
@@ -234,7 +236,7 @@ Then we find the end of the for statement in the file and jump to this location 
 \begin{flushleft}
 {\Large Answer:}\\
 1)\\
-\qquad As we discussed earlier, When the PC starts up, the CPU runs in real mode (real mode), and when it enters the operating system kernel, it will run in protected mode (protected mode). When entering protection mode, the CPU will switch from 16 bits to 32 bits.
+\qquad As we discussed earlier, When the PC starts up, the CPU runs in real mode (real mode), and when it enters the operating system kernel, it will run in protected mode (protected mode).Then it will set PE. When entering protection mode, the CPU will switch from 16 bits to 32 bits.
 \begin{figure}[H]
   \centering
   % Requires \usepackage{graphicx}
@@ -356,7 +358,7 @@ In this question, we follow the case 'u' to write the code.
 \begin{figure}[H]
   \centering
   % Requires \usepackage{graphicx}
-  \includegraphics[width=0.8\linewidth]{figure/caseo}
+  \includegraphics[width=0.8\linewidth]{figure/homework1_answer}
   \caption{answer}\label{2}
 \end{figure}
 
@@ -430,7 +432,7 @@ display format
 
 
 
-We first call the read\_ebp function to get the value of the current EBP register. We treat the entire call stack as an array, EBP[0] represents the ebp value of the previous function, and EBP [1] stores the function return address, EBP [2] What is stored later is the value of the input parameter.
+First we call the read\_ebp function to get the value of the current EBP register. We treat the entire call stack as an array, EBP[0] represents the ebp value of the previous function, and EBP [1] stores the function return address, EBP [2] What is stored later is the value of the input parameter.
 
 \begin{table}[H]
 \centering
@@ -460,7 +462,7 @@ The result of the operation is as follows
 \begin{figure}[H]
   \centering
   % Requires \usepackage{graphicx}
-  \includegraphics[width=0.8\linewidth]{figure/mon_backtrace_qemu}
+  \includegraphics[width=0.8\linewidth]{figure/mon_backtrace_qemu3}
 \end{figure}
 
 
@@ -471,7 +473,6 @@ Add backtrace to the command list
   \includegraphics[width=0.8\linewidth]{figure/add_backtrace}
 \end{figure}
 
-The results are as follows:
 \subsubsection{Challenge homework}
 \begin{flushleft}
 {\Large Question}

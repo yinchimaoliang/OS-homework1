@@ -337,7 +337,7 @@ Need to complete a loop, using the pgdir\_walk function we just completed, we ca
 \caption{boot\_map\_region}
 \end{figure}
 
-Next, continue to view page\_insert(). The function prototype is as follows: page\_insert(pde\_t *pgdir, struct PageInfo *pp, void *va, int perm), which is functionally completed: mapping a page pp in a physical memory to a virtual address va .
+Next,we continue to view page\_insert(). The function prototype is as follows: page\_insert(pde\_t *pgdir, struct PageInfo *pp, void *va, int perm), which is functionally completed: mapping a page pp in a physical memory to a virtual address va .
 
 The main steps of this function are as follows:
 
@@ -521,36 +521,13 @@ Pages use up to 4MB space, and each PageInfo use 8Byte. 4M / 8 * 4kB=2GB (4kB pe
 4)How much space overhead is there for managing memory, if we actually had the maximum amount of physical memory? How is this overhead broken down?
 
 {\Large Answer}
+
+totally 6MB+4KB\\
+————————————————————————————————\\
+The maximum physical memory is 2G, so there's 0.5M pages in total.\\
+8*0.5M = 4MB	(struct PageInfo use 8bytes per page)\\
+4*0.5M = 2MB 	(each page table uses 4bytes)\\
+4KB		(Page director uses 4kB)\\
+————————————————————————————————\\
 \end{flushleft}
-
-The total overhead to manage maxium amount of physical memory is:
-
-  786432 bytes (struct Pages [1])
-
-  4096 bytes (one page directory [2])
-
-  262144 bytes (64 page tables [3])
-
-  ------------
-
-  1052672 bytes (~1MB)
-
-  The only way I can see to reduce that amount is to use 4MB pages, this
-  would reduce the struct Page allocations to 768 bytes and no need to
-  allocate page tables.
-
-  On the hand, the greater the granularity the greater the amount of
-  unused chunks we'll have on the allocated pages which means we'll
-  spend memory...
-
-  [1] struct Page overhead was calculated this way
-  256 * 1024 * 1024 / 4096 * 12
-  256MB Page size size of struct Page
-
-  [2] Page directory is 4096 bytes long by definition
-
-  [3] Page table overhead was calculated this way
-
-  (256 * 1024 * 1024 / (4096 * 1024)) * 4096
-  256MB PG maps 4MB PG size
 \clearpage
